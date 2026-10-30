@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import {
   SettingsForm,
@@ -75,9 +76,22 @@ export function BotProtectionSection({
       ([key, value]) =>
         value !== defaultValues[key as keyof BotProtectionFormValues]
     )
+    const turnstileEnableUpdate = updates.find(
+      ([key, value]) => key === 'TurnstileCheckEnabled' && value === true
+    )
+    const orderedUpdates = turnstileEnableUpdate
+      ? [
+          ...updates.filter(([key]) => key !== 'TurnstileCheckEnabled'),
+          turnstileEnableUpdate,
+        ]
+      : updates
 
-    for (const [key, value] of updates) {
-      await updateOption.mutateAsync({ key, value: value ?? '' })
+    try {
+      for (const [key, value] of orderedUpdates) {
+        await updateOption.mutateAsync({ key, value: value ?? '' })
+      }
+    } catch (error) {
+      handleServerError(error)
     }
   }
 
@@ -87,7 +101,7 @@ export function BotProtectionSection({
         <SettingsForm onSubmit={form.handleSubmit(onSubmit)} autoComplete='off'>
           <SettingsPageFormActions
             onSave={form.handleSubmit(onSubmit)}
-            isSaving={updateOption.isPending}
+            isSaving={form.formState.isSubmitting}
           />
           <FormField
             control={form.control}
